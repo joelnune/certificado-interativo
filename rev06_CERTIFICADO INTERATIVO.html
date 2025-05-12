@@ -1,0 +1,1900 @@
+<script>
+        // Inicialização quando o DOM estiver carregado
+        document.addEventListener('DOMContentLoaded', function() {
+            // Definir data atual automaticamente
+            const today = new Date();
+            document.getElementById('currentDate').value = today.toISOString().split('T')[0];
+
+            // Inicializar tabela com 6 linhas
+            const productTable = document.getElementById('productTable').getElementsByTagName('tbody')[0];
+            for (let i = 0; i < 6; i++) {
+                addNewRow();
+            }
+
+            // Adicionar evento ao botão de adicionar linha
+            document.getElementById('addRowBtn').addEventListener('click', function() {
+                addNewRow();
+            });
+
+            // Adicionar evento ao botão de gerar relatório
+            document.getElementById('generateReportBtn').addEventListener('click', function() {
+                if (validateForm()) {
+                    generateReport();
+                    
+                    // Exibir modal
+                    const reportModal = new bootstrap.Modal(document.getElementById('reportModal'));
+                    reportModal.show();
+                }
+            });
+
+            // Adicionar evento ao botão de download de PDF
+            document.getElementById('downloadPdfBtn').addEventListener('click', function() {
+                generatePDF();
+            });
+
+            // Função para adicionar nova linha na tabela
+            function addNewRow() {
+                const rowCount = productTable.rows.length;
+                const row = productTable.insertRow();
+                
+                // Célula para o número da linha
+                const cellNum = row.insertCell(0);
+                cellNum.textContent = rowCount + 1;
+                
+                // Célula para o ambiente
+                const cellAmbiente = row.insertCell(1);
+                const ambienteSelect = document.createElement('select');
+                ambienteSelect.className = 'form-select ambiente-select';
+                
+                const ambientes = [
+                    'Selecione...', 'Sala', 'Quarto', 'Cozinha', 'Banheiro', 
+                    'Lavanderia', 'Varanda', 'Escritório', 'Área Gourmet', 'Outro'
+                ];
+                
+                ambientes.forEach(ambiente => {
+                    const option = document.createElement('option');
+                    option.value = ambiente;
+                    option.textContent = ambiente;
+                    ambienteSelect.appendChild(option);
+                });
+                
+                cellAmbiente.appendChild(ambienteSelect);
+                
+                // Célula para o tipo de produto
+                const cellTipo = row.insertCell(2);
+                const tipoSelect = document.createElement('select');
+                tipoSelect.className = 'form-select tipo-select';
+                
+                const produtos = [
+                    'Selecione...', 
+                    'Janela de Correr', 
+                    'Janela Maxim-ar', 
+                    'Porta de Giro', 
+                    'Porta de Correr', 
+                    'Sistema Retrátil', 
+                    'Box de Vidro', 
+                    'Guarda-corpo', 
+                    'Esquadria de Alumínio',
+                    'Vidro Temperado',
+                    'Vidro Laminado',
+                    'Vidro Comum',
+                    'Painel Fixo',
+                    'Persiana',
+                    'Outro'
+                ];
+                
+                produtos.forEach(produto => {
+                    const option = document.createElement('option');
+                    option.value = produto;
+                    option.textContent = produto;
+                    tipoSelect.appendChild(option);
+                });
+                
+                cellTipo.appendChild(tipoSelect);
+                
+                // Célula para quantidade
+                const cellQtd = row.insertCell(3);
+                const qtdInput = document.createElement('input');
+                qtdInput.type = 'number';
+                qtdInput.className = 'form-control qtd-input';
+                qtdInput.min = '1';
+                qtdInput.value = '1';
+                cellQtd.appendChild(qtdInput);
+                
+                // Célula para unidade
+                const cellUnidade = row.insertCell(4);
+                const unidadeSelect = document.createElement('select');
+                unidadeSelect.className = 'form-select unidade-select';
+                
+                const unidades = [
+                    'Peça', 'Conjunto', 'Metro', 'Metro²', 'Kit'
+                ];
+                
+                unidades.forEach(unidade => {
+                    const option = document.createElement('option');
+                    option.value = unidade;
+                    option.textContent = unidade;
+                    unidadeSelect.appendChild(option);
+                });
+                
+                cellUnidade.appendChild(unidadeSelect);
+                
+                // Célula para comprimento
+                const cellComprimento = row.insertCell(5);
+                const comprimentoInput = document.createElement('input');
+                comprimentoInput.type = 'number';
+                comprimentoInput.className = 'form-control comprimento-input';
+                comprimentoInput.min = '0';
+                comprimentoInput.step = '0.1';
+                cellComprimento.appendChild(comprimentoInput);
+                
+                // Célula para largura
+                const cellLargura = row.insertCell(6);
+                const larguraInput = document.createElement('input');
+                larguraInput.type = 'number';
+                larguraInput.className = 'form-control largura-input';
+                larguraInput.min = '0';
+                larguraInput.step = '0.1';
+                cellLargura.appendChild(larguraInput);
+                
+                // Célula para altura
+                const cellAltura = row.insertCell(7);
+                const alturaInput = document.createElement('input');
+                alturaInput.type = 'number';
+                alturaInput.className = 'form-control altura-input';
+                alturaInput.min = '0';
+                alturaInput.step = '0.1';
+                cellAltura.appendChild(alturaInput);
+                
+                // Célula para ações
+                const cellAcoes = row.insertCell(8);
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-danger btn-sm';
+                removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                removeBtn.addEventListener('click', function() {
+                    if (productTable.rows.length > 1) {
+                        productTable.deleteRow(row.rowIndex - 1);
+                        updateRowNumbers();
+                    } else {
+                        alert('A tabela deve ter pelo menos uma linha');
+                    }
+                });
+                cellAcoes.appendChild(removeBtn);
+            }
+
+            // Função para atualizar os números das linhas
+            function updateRowNumbers() {
+                const rows = productTable.rows;
+                for (let i = 0; i < rows.length; i++) {
+                    rows[i].cells[0].textContent = i + 1;
+                }
+            }
+
+            // Função para validar o formulário antes de gerar o relatório
+            function validateForm() {
+                const rows = productTable.rows;
+                let valid = true;
+                let emptyFields = [];
+                
+                // Verificar os campos do cabeçalho
+                const wvCode = document.getElementById('wvCode').value.trim();
+                const clientName = document.getElementById('clientName').value.trim();
+                const clientAddress = document.getElementById('clientAddress').value.trim();
+                
+                if (!wvCode) emptyFields.push('Código WV');
+                if (!clientName) emptyFields.push('Nome do Cliente');
+                if (!clientAddress) emptyFields.push('Endereço');
+                
+                // Verificar as linhas da tabela
+                for (let i = 0; i < rows.length; i++) {
+                    const ambiente = rows[i].querySelector('.ambiente-select').value;
+                    const tipo = rows[i].querySelector('.tipo-select').value;
+                    const comprimento = rows[i].querySelector('.comprimento-input').value;
+                    const largura = rows[i].querySelector('.largura-input').value;
+                    const altura = rows[i].querySelector('.altura-input').value;
+                    
+                    if (ambiente === 'Selecione...' || tipo === 'Selecione...' || !comprimento || !largura || !altura) {
+                        valid = false;
+                        break;
+                    }
+                }
+                
+                if (emptyFields.length > 0) {
+                    alert('Por favor, preencha os seguintes campos: ' + emptyFields.join(', '));
+                    return false;
+                }
+                
+                if (!valid) {
+                    alert('Por favor, preencha todos os campos da tabela de produtos.');
+                    return false;
+                }
+                
+                return true;
+            }
+
+            // Função para gerar o relatório
+            function generateReport() {
+                // Coletar dados
+                const rows = productTable.rows;
+                const produtosPorTipo = {};
+                const ambientesPorTipo = {};
+                
+                for (let i = 0; i < rows.length; i++) {
+                    const tipo = rows[i].querySelector('.tipo-select').value;
+                    const qtd = parseInt(rows[i].querySelector('.qtd-input').value);
+                    const ambiente = rows[i].querySelector('.ambiente-select').value;
+                    
+                    if (tipo !== 'Selecione...') {
+                        // Contabilizar quantidade por tipo
+                        if (!produtosPorTipo[tipo]) {
+                            produtosPorTipo[tipo] = 0;
+                            ambientesPorTipo[tipo] = new Set();
+                        }
+                        produtosPorTipo[tipo] += qtd;
+                        ambientesPorTipo[tipo].add(ambiente);
+                    }
+                }
+                
+                // Preencher tabela de resumo
+                const summaryTable = document.getElementById('summaryTable').getElementsByTagName('tbody')[0];
+                summaryTable.innerHTML = '';
+                
+                for (const tipo in produtosPorTipo) {
+                    const row = summaryTable.insertRow();
+                    const cellTipo = row.insertCell(0);
+                    const cellQtd = row.insertCell(1);
+                    const cellAmbientes = row.insertCell(2);
+                    
+                    cellTipo.textContent = tipo;
+                    cellQtd.textContent = produtosPorTipo[tipo];
+                    cellAmbientes.textContent = Array.from(ambientesPorTipo[tipo]).join(', ');
+                }
+                
+                // Verificar quais tipos de produtos estão presentes
+                const temEsquadrias = 'Janela de Correr' in produtosPorTipo || 
+                                      'Janela Maxim-ar' in produtosPorTipo || 
+                                      'Porta de Giro' in produtosPorTipo || 
+                                      'Porta de Correr' in produtosPorTipo ||
+                                      'Esquadria de Alumínio' in produtosPorTipo;
+                
+                const temVidros = 'Vidro Temperado' in produtosPorTipo || 
+                                 'Vidro Laminado' in produtosPorTipo || 
+                                 'Vidro Comum' in produtosPorTipo;
+                
+                const temSistemasEspeciais = 'Sistema Retrátil' in produtosPorTipo || 
+                                           'Box de Vidro' in produtosPorTipo || 
+                                           'Guarda-corpo' in produtosPorTipo;
+                
+                // Preencher direitos do consumidor
+                const direitosConsumidor = document.getElementById('direitosConsumidor');
+                direitosConsumidor.innerHTML = `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Com base no Código de Defesa do Consumidor (Lei nº 8.078/1990)</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">Direito à informação adequada e clara sobre os produtos e serviços (Art. 6º, III)</li>
+                                <li class="list-group-item">Direito à proteção contra produtos e serviços que possam ser nocivos à saúde (Art. 6º, I)</li>
+                                <li class="list-group-item">Direito à garantia legal de adequação do produto/serviço às normas técnicas (Art. 39, VIII)</li>
+                                <li class="list-group-item">Direito de receber manual de instruções, termo de garantia e assistência técnica (Art. 50)</li>
+                                <li class="list-group-item">Direito de reclamar por vícios aparentes em até 90 dias para produtos duráveis (Art. 26, II)</li>
+                                <li class="list-group-item">Direito à indenização por danos materiais causados por defeitos no produto/serviço (Art. 14)</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                
+                // Preencher deveres do fornecedor
+                const deveresFornecedor = document.getElementById('deveresFornecedor');
+                deveresFornecedor.innerHTML = `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Obrigações do Fornecedor</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">Fornecer produtos e serviços que não apresentem riscos à saúde ou segurança dos consumidores (Art. 8º)</li>
+                                <li class="list-group-item">Fornecer informações claras e adequadas sobre os produtos, incluindo riscos, características, composição e preço (Art. 31)</li>
+                                <li class="list-group-item">Garantir a qualidade dos produtos e serviços, atendendo às normas técnicas brasileiras (Art. 39, VIII)</li>
+                                <li class="list-group-item">Oferecer garantia legal independentemente de termo expresso (Art. 24)</li>
+                                <li class="list-group-item">Informar de maneira ostensiva sobre possíveis riscos (Art. 9º)</li>
+                                <li class="list-group-item">Fornecer manuais de instalação e uso em língua portuguesa (Art. 31)</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                
+                // Preencher normas técnicas aplicáveis
+                const normasTecnicas = document.getElementById('normasTecnicas');
+                let normasHTML = '<div class="card mb-3"><div class="card-body"><h5 class="card-title">Normas Aplicáveis ao Projeto</h5><ul class="list-group list-group-flush">';
+                
+                // Normas gerais (sempre aplicáveis)
+                normasHTML += `
+                    <li class="list-group-item"><strong>NBR 15575</strong> - Edificações Habitacionais - Desempenho</li>
+                    <li class="list-group-item"><strong>NBR 5674:2012</strong> - Manutenção de edificações - Requisitos para o sistema de gestão de manutenção</li>
+                `;
+                
+                // Normas específicas baseadas nos tipos de produtos
+                if (temEsquadrias) {
+                    normasHTML += `
+                        <li class="list-group-item"><strong>NBR 10821</strong> - Esquadrias para edificações</li>
+                        <li class="list-group-item"><strong>NBR 10821-2:2017</strong> - Esquadrias para edificações - Parte 2: Requisitos e classificação</li>
+                        <li class="list-group-item"><strong>NBR 10821-3:2017</strong> - Esquadrias para edificações - Parte 3: Métodos de ensaio</li>
+                        <li class="list-group-item"><strong>NBR 16035:2012</strong> - Chapas de aço revestidas organicamente - Tolerâncias dimensionais</li>
+                    `;
+                }
+                
+                if (temVidros) {
+                    normasHTML += `
+                        <li class="list-group-item"><strong>NBR 7199:2016</strong> - Vidros na construção civil - Projeto, execução e aplicações</li>
+                        <li class="list-group-item"><strong>NBR 16015</strong> - Vidros - Vidro laminado</li>
+                        <li class="list-group-item"><strong>NBR 14698</strong> - Vidro temperado</li>
+                    `;
+                }
+                
+                if (temSistemasEspeciais) {
+                    normasHTML += `
+                        <li class="list-group-item"><strong>NBR 14718</strong> - Guarda-corpos para edificação</li>
+                        <li class="list-group-item"><strong>NBR 16259</strong> - Sistemas de envidraçamento de sacadas</li>
+                    `;
+                }
+                
+                // Normas de instalação e manutenção
+                normasHTML += `
+                    <li class="list-group-item"><strong>NBR 14037:2014</strong> - Diretrizes para elaboração de manuais de uso, operação e manutenção</li>
+                    <li class="list-group-item"><strong>NBR 15575-4:2021</strong> - Edificações habitacionais - Desempenho - Parte 4: Requisitos para os sistemas de vedações verticais internas e externas</li>
+                `;
+                
+                normasHTML += '</ul></div></div>';
+                normasTecnicas.innerHTML = normasHTML;
+                
+                // Definir ano atual na tabela de periodicidade
+                const anoTabelaElement = document.getElementById('anoTabela');
+                if (anoTabelaElement) {
+                    anoTabelaElement.textContent = today.getFullYear();
+                }
+            }
+
+            // Função para gerar o PDF
+            function generatePDF() {
+                // Mostrar overlay de carregamento
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                
+                // Usar setTimeout para dar tempo ao browser para renderizar o loading
+                setTimeout(function() {
+                    try {
+                        const { jsPDF } = window.jspdf;
+                        
+                        if (!jsPDF) {
+                            alert("A biblioteca jsPDF não foi carregada corretamente. Verifique sua conexão com a internet.");
+                            document.getElementById('loadingOverlay').style.display = 'none';
+                            return;
+                        }
+                        
+                        const doc = new jsPDF('p', 'mm', 'a4');
+                        
+                        // Obter dados do cabeçalho
+                        const wvCode = document.getElementById('wvCode').value;
+                        const clientName = document.getElementById('clientName').value;
+                        const clientAddress = document.getElementById('clientAddress').value;
+                        const currentDate = document.getElementById('currentDate').value;
+                        
+                        // Configurar cabeçalho do PDF
+                        doc.setFontSize(16);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('SAN GLASS - RELATÓRIO TÉCNICO', 105, 15, { align: 'center' });
+                        
+                        doc.setFontSize(11);
+                        doc.setTextColor(0);
+                        doc.text(`Código: ${wvCode}`, 15, 25);
+                        doc.text(`Cliente: ${clientName}`, 15, 30);
+                        doc.text(`Endereço: ${clientAddress}`, 15, 35);
+                        doc.text(`Data: ${formatDate(currentDate)}`, 15, 40);
+                        
+                        // Linha separadora
+                        doc.setDrawColor(0, 102, 204);
+                        doc.setLineWidth(0.5);
+                        doc.line(15, 45, 195, 45);
+                        
+                        // Título da tabela de produtos
+                        doc.setFontSize(14);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('RELAÇÃO DE PRODUTOS', 105, 55, { align: 'center' });
+                        
+                        // Obter dados da tabela de produtos
+                        const tableData = [];
+                        const tableHeader = [
+                            ['#', 'Ambiente', 'Tipo de Produto', 'Qtd', 'Unid.', 'Comp. (cm)', 'Larg. (cm)', 'Alt. (cm)']
+                        ];
+                        
+                        const rows = productTable.rows;
+                        for (let i = 0; i < rows.length; i++) {
+                            const ambiente = rows[i].querySelector('.ambiente-select').value;
+                            const tipo = rows[i].querySelector('.tipo-select').value;
+                            const qtd = rows[i].querySelector('.qtd-input').value;
+                            const unidade = rows[i].querySelector('.unidade-select').value;
+                            const comprimento = rows[i].querySelector('.comprimento-input').value;
+                            const largura = rows[i].querySelector('.largura-input').value;
+                            const altura = rows[i].querySelector('.altura-input').value;
+                            
+                            tableData.push([
+                                (i + 1).toString(),
+                                ambiente,
+                                tipo,
+                                qtd,
+                                unidade,
+                                comprimento,
+                                largura,
+                                altura
+                            ]);
+                        }
+                        
+                        // Gerar tabela de produtos no PDF
+                        doc.autoTable({
+                            head: tableHeader,
+                            body: tableData,
+                            startY: 60,
+                            styles: { fontSize: 9, cellPadding: 3 },
+                            headStyles: { fillColor: [0, 102, 204], textColor: [255, 255, 255] },
+                            margin: { top: 60 }
+                        });
+                        
+                        // Obter a posição Y após a tabela
+                        let y = doc.autoTable.previous.finalY + 10;
+                        
+                        // Adicionar periodicidade de manutenção
+                        doc.addPage();
+                        
+                        // Tabela de periodicidade
+                        doc.setFontSize(14);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('TABELA DE PERIODICIDADE DE MANUTENÇÃO', 105, 15, { align: 'center' });
+                        doc.setFontSize(12);
+                        doc.text(`Guia para Acompanhamento do Cliente - ${new Date().getFullYear()}`, 105, 22, { align: 'center' });
+                        
+                        // Criar dados para tabela de manutenção
+                        const manutencaoHeader = [
+                            ['Item', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+                        ];
+                        
+                        const manutencaoData = [
+                            ['Vedação de Silicone', '✓', '', '', '', '', '', '✓', '', '', '', '', ''],
+                            ['Dispositivos de Abertura', '✓', '', '', '✓', '', '', '✓', '', '', '✓', '', ''],
+                            ['Perfis de Alumínio', '✓', '', '', '✓', '', '', '✓', '', '', '✓', '', ''],
+                            ['Chumbadores e Fixadores', '✓', '', '', '', '', '', '', '', '', '', '', ''],
+                            ['Sistema Retrátil', '✓', '', '', '', '', '', '', '', '', '', '', ''],
+                            ['Vidros', '✓', '', '✓', '', '', '', '✓', '', '', '', '', '✓'],
+                            ['Boxes de Vidro', '✓', '', '✓', '', '', '', '✓', '', '', '', '', '✓']
+                        ];
+                        // [linha, coluna, responsabilidade]
+                        // responsabilidade: true = SANGLASS, false = CLIENTE
+                        const celulasColoridas = [
+                            // Vedação de Silicone (CLIENTE) - Jan e Jul
+                            [0, 1, false], [0, 7, false],
+                            // Dispositivos de Abertura (CLIENTE) - Jan, Abr, Jul, Out
+                            [1, 1, false], [1, 4, false], [1, 7, false], [1, 10, false],
+                            // Perfis de Alumínio (CLIENTE) - Jan, Abr, Jul, Out
+                            [2, 1, false], [2, 4, false], [2, 7, false], [2, 10, false],
+                            // Chumbadores e Fixadores (SANGLASS) - Jan
+                            [3, 1, true],
+                            // Sistema Retrátil (SANGLASS) - Jan
+                            [4, 1, true],
+                            // Vidros (CLIENTE) - Jan, Mar, Jul, Dez
+                            [5, 1, false], [5, 3, false], [5, 7, false], [5, 12, false],
+                            // Boxes de Vidro (CLIENTE) - Jan, Mar, Jul, Dez
+                            [6, 1, false], [6, 3, false], [6, 7, false], [6, 12, false]
+                        ];
+                        
+                        // Gerar tabela de manutenção
+                        doc.autoTable({
+                            head: manutencaoHeader,
+                            body: manutencaoData,
+                            startY: 30,
+                            styles: { fontSize: 9, cellPadding: 2 },
+                            headStyles: { fillColor: [0, 102, 204], textColor: [255, 255, 255] },
+                            theme: 'grid',
+                            didDrawCell: function(data) {
+                                // Verificar se esta célula deve ser colorida
+                                if (data.section === 'body') {
+                                    // Percorrer a lista de células que devem ser coloridas
+                                    for (let i = 0; i < celulasColoridas.length; i++) {
+                                        const [linha, coluna, isSanglass] = celulasColoridas[i];
+                                        
+                                        // Se esta célula corresponder a uma das que devem ser coloridas
+                                        if (data.row.index === linha && data.column.index === coluna) {
+                                            // Definir a cor com base na responsabilidade
+                                            if (isSanglass) {
+                                                // Cor para SANGLASS (azul claro)
+                                                doc.setFillColor(200, 230, 255);
+                                            } else {
+                                                // Cor para CLIENTE (amarelo claro)
+                                                doc.setFillColor(255, 245, 200);
+                                            }
+                                            
+                                            // Desenhar um retângulo colorido na célula
+                                            doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                                            
+                                            // Redesenhar o texto depois de colorir o fundo
+                                            doc.setTextColor(0);
+                                            doc.text(data.cell.raw || '✓', data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2, {
+                                                align: 'center',
+                                                baseline: 'middle'
+                                            });
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        
+                        y = doc.autoTable.previous.finalY + 10;
+                        
+                        // Adicionar legenda
+                        doc.setFontSize(8);
+                        doc.setTextColor(0);
+                        doc.text('LEGENDA:', 15, y);
+                        
+                        // Retângulos de cor para a legenda
+                        doc.setFillColor(255, 245, 200); // Cor cliente
+                        doc.rect(15, y + 3, 5, 5, 'F');
+                        doc.text('Manutenção sob responsabilidade do CLIENTE', 23, y + 6);
+                        
+                        doc.setFillColor(200, 230, 255); // Cor SANGLASS
+                        doc.rect(15, y + 10, 5, 5, 'F');
+                        doc.text('Manutenção sob responsabilidade da SANGLASS*', 23, y + 13);
+                        
+                        y += 20;
+                        
+                        // Procedimentos para acionamento da garantia
+                        doc.setFontSize(14);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('PROCEDIMENTOS PARA ACIONAMENTO DA GARANTIA', 105, y, { align: 'center' });
+                        
+                        y += 10;
+                        
+                        // Criar fundo azul claro
+                        doc.setFillColor(235, 245, 255);
+                        doc.rect(15, y, 180, 60, 'F');
+                        
+                        // Adicionar texto dos procedimentos
+                        doc.setFontSize(10);
+                        doc.setTextColor(0);
+                        doc.setFont(undefined, 'bold');
+                        doc.text('1. Comunicar imediatamente', 20, y + 10);
+                        doc.setFont(undefined, 'normal');
+                        doc.text('qualquer não conformidade à SANGLASS pelos canais oficiais de atendimento.', 70, y + 10);
+                        
+                        doc.setFont(undefined, 'bold');
+                        doc.text('2. Apresentar documentação', 20, y + 20);
+                        doc.setFont(undefined, 'normal');
+                        doc.text('comprobatória de manutenções realizadas.', 70, y + 20);
+                        
+                        doc.setFont(undefined, 'bold');
+                        doc.text('3. Permitir o acesso', 20, y + 30);
+                        doc.setFont(undefined, 'normal');
+                        doc.text('dos técnicos da SANGLASS para vistoria e avaliação.', 70, y + 30);
+                        
+                        doc.setFont(undefined, 'bold');
+                        doc.text('4. Aguardar o laudo técnico', 20, y + 40);
+                        doc.setFont(undefined, 'normal');
+                        doc.text('que determinará se o caso está coberto pela garantia.', 70, y + 40);
+                        
+                        doc.setFontSize(9);
+                        doc.text('A SANGLASS se reserva o direito de analisar cada solicitação individualmente, verificando se as condições de', 20, y + 50);
+                        doc.text('uso e manutenção foram respeitadas conforme especificações técnicas.', 20, y + 55);
+                        
+                        y += 70;
+                        
+                        // Observação importante
+                        doc.setFontSize(8);
+                        doc.setTextColor(100);
+                        doc.text('OBSERVAÇÃO IMPORTANTE: As informações contidas neste documento estão em conformidade com a legislação', 105, y, { align: 'center' });
+                        doc.text('vigente na data de sua emissão e podem sofrer alterações em função de mudanças na legislação.', 105, y + 5, { align: 'center' });
+                        
+                        doc.setFontSize(7);
+                        doc.text('Este documento é parte integrante do Manual do Proprietário e deve ser mantido para consultas', 105, y + 12, { align: 'center' });
+                        doc.text('durante todo o período de garantia dos produtos instalados.', 105, y + 16, { align: 'center' });
+                        
+                        doc.text(`Data de emissão: ${formatDate(currentDate)}`, 105, y + 24, { align: 'center' });
+                        
+                        // Adicionar nova página para as normas
+                        doc.addPage();
+                        
+                        // Título da seção de normas técnicas
+                        doc.setFontSize(14);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('NORMAS TÉCNICAS APLICÁVEIS', 105, 15, { align: 'center' });
+                        
+                        doc.setFontSize(10);
+                        doc.setTextColor(0);
+                        y = 25;
+                        
+                        // Lista de normas baseadas nos produtos
+                        const normas = [
+                            { codigo: 'NBR 15575', descricao: 'Edificações Habitacionais - Desempenho' },
+                            { codigo: 'NBR 5674:2012', descricao: 'Manutenção de edificações - Requisitos para o sistema de gestão de manutenção' },
+                            { codigo: 'NBR 10821', descricao: 'Esquadrias para edificações' },
+                            { codigo: 'NBR 10821-2:2017', descricao: 'Esquadrias para edificações - Parte 2: Requisitos e classificação' },
+                            { codigo: 'NBR 7199:2016', descricao: 'Vidros na construção civil - Projeto, execução e aplicações' },
+                            { codigo: 'NBR 14718', descricao: 'Guarda-corpos para edificação' },
+                            { codigo: 'NBR 16259', descricao: 'Sistemas de envidraçamento de sacadas' },
+                            { codigo: 'NBR 14037:2014', descricao: 'Diretrizes para elaboração de manuais de uso, operação e manutenção' }
+                        ];
+                        
+                        normas.forEach(norma => {
+                            doc.setFont(undefined, 'normal');
+                            doc.text(`- ${norma.descricao}`, 60, y);
+                            y += 7;
+                            
+                            // Se chegar ao final da página, adicionar nova página
+                            if (y > 280) {
+                                doc.addPage();
+                                y = 15;
+                            }
+                        });
+                        
+                        // Adicionar rodapé em todas as páginas
+                        const pageCount = doc.getNumberOfPages();
+                        for (let i = 1; i <= pageCount; i++) {
+                            doc.setPage(i);
+                            
+                            // Linha separadora
+                            doc.setDrawColor(0, 102, 204);
+                            doc.setLineWidth(0.5);
+                            doc.line(15, 285, 195, 285);
+                            
+                            // Texto do rodapé
+                            doc.setFontSize(8);
+                            doc.setTextColor(0);
+                            doc.text('SAN GLASS - Sistemas de Vidro e Esquadrias', 15, 290);
+                            doc.text('* Recomendação técnica. Análise mediante visita técnica paga da SANGLASS.', 105, 290, { align: 'center' });
+                            doc.text(`Página ${i} de ${pageCount}`, 195, 290, { align: 'right' });
+                        }
+                        
+                        // Salvar o PDF
+                        const filename = `Relatório_${wvCode.replace(/\s/g, '')}_${formatDateFilename(currentDate)}.pdf`;
+                        doc.save(filename);
+                    } catch (error) {
+                        console.error('Erro ao gerar PDF:', error);
+                        alert('Ocorreu um erro ao gerar o PDF: ' + error.message);
+                    } finally {
+                        // Esconder overlay de carregamento
+                        document.getElementById('loadingOverlay').style.display = 'none';
+                    }
+                }, 500);
+            }
+            
+            // Função auxiliar para formatar a data
+            function formatDate(dateString) {
+                if (!dateString) return '';
+                
+                const date = new Date(dateString);
+                return date.toLocaleDateString('pt-BR');
+            }
+            
+            // Função auxiliar para formatar a data para nome de arquivo
+            function formatDateFilename(dateString) {
+                if (!dateString) return '';
+                
+                const date = new Date(dateString);
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                
+                return `${day}${month}${year}`;
+            }
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    
+                <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário de Produtos - SAN GLASS</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #0066cc;
+            --secondary-color: #e6f2ff;
+            --dark-color: #333;
+            --light-color: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--dark-color);
+            background-color: var(--light-color);
+        }
+        
+        .header {
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 15px 0;
+            margin-bottom: 30px;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .main-title {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .section-title {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+        
+        .form-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .table th {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+        
+        .footer {
+            background-color: #6c6c6c;
+            color: white;
+            padding: 20px 0;
+            margin-top: 40px;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="header">
+        <div class="container">
+            <div class="logo-container">
+                <h2 style="color: #0066cc; font-weight: bold; font-size: 36px;">SAN GLASS</h2>
+            </div>
+            <h1 class="main-title">FORMULÁRIO DE PRODUTOS E SERVIÇOS</h1>
+        </div>
+    </div>
+
+    <div class="container mb-5">
+        <!-- Cabeçalho -->
+        <div class="form-section" id="cabecalho">
+            <h2 class="section-title">Informações do Cliente</h2>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="wvCode" class="form-label">Código WV</label>
+                    <input type="text" class="form-control" id="wvCode" placeholder="Ex: WV 5582">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="clientName" class="form-label">Nome do Cliente</label>
+                    <input type="text" class="form-control" id="clientName" placeholder="Nome completo">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="clientAddress" class="form-label">Endereço</label>
+                    <input type="text" class="form-control" id="clientAddress" placeholder="Rua, número, complemento">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label for="currentDate" class="form-label">Data</label>
+                    <input type="date" class="form-control" id="currentDate">
+                </div>
+            </div>
+        </div>
+        <!-- Anexar pdf -->
+        <div class="form-section" id="pdf">
+            <h2 class="section-title">Anexar PDF</h2>
+                <label for="pdf_file" class="form-label">PDF</label>
+                <input type="file" class="form-control" id="pdf_file">
+         
+        </div>
+        <script>
+        document.getElementById('pdf_file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file || file.type !== "application/pdf") {
+                alert("Selecionar Arquivo tipo PDF");
+                e.target.files[0] = null
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function() {
+                const typedArray = new Uint8Array(reader.result);
+
+                pdfjsLib.getDocument(typedArray).promise.then(function(pdf) {
+                    console.log(`PDF loaded: ${pdf.numPages} pages`);
+
+                    // Read and log text from all pages
+                    let textPromises = [];
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        textPromises.push(
+                            pdf.getPage(i).then(function(page) {
+                                return page.getTextContent();
+                            }).then(function(textContent) {
+                                return textContent.items.map(item => item.str).join(' ');
+                            })
+                        );
+                    }
+
+                    Promise.all(textPromises).then(function(pagesText) {
+    const fullText = pagesText.join('\n\n');
+    const start = fullText.indexOf("COR PERFIL");
+    
+    let end = fullText.indexOf("F. Taxa de Prorroga");
+    if (fullText.indexOf("Das especificações simplificadas do Sistema SanSystem") != -1){
+        end = fullText.indexOf("Das especificações simplificadas do Sistema SanSystem")
+    }
+    let extractedText = '';
+    if (start !== -1 && end !== -1 && end > start) {
+        extractedText = fullText.substring(start + "COR PERFIL".length, end).trim();
+
+        console.log('texto extraido: ',extractedText)  
+
+        let parts = extractedText.trim().split(/\s{2,}/);
+        parts_filtrada = []
+        result = []
+        
+        for (let i = 0; i < parts.length; i++) {
+               let parts_filtrada = parts[i];
+
+                if (parts_filtrada.endsWith("-") && i + 1 < parts.length) {
+                    parts_filtrada = parts_filtrada + parts[i + 1];
+                    i++
+                }
+
+            result.push(parts_filtrada);    
+        }
+        console.log('parts: ',parts);       
+
+        const cleanedArray = [];
+        
+        for (let i = 0; i < result.length; i++) {
+            const item = result[i];
+            if (item.startsWith('(') && cleanedArray.length > 0 || item.endsWith('-') && cleanedArray.length > 0) {
+                cleanedArray[cleanedArray.length - 1] += ' ' + item;
+            } else {
+                cleanedArray.push(item);
+            }
+            }
+
+          let array_dados = [];
+          chunkSize = 7
+          for (let i = 0; i < cleanedArray.length; i += chunkSize) {   
+                array_dados.push(cleanedArray.slice(i, i + chunkSize));          
+            
+           
+  }       
+            array_dados = array_dados.filter(subArray => subArray[subArray.length - 1] !== "COR PERFIL");
+
+            console.log('array_dados: ',array_dados)
+            document.body.insertAdjacentHTML('beforeend', `<pre>${array_dados}</pre>`);
+
+            const linhas = document.querySelectorAll('tbody tr');
+            i = 0
+            linhas.forEach(tr => {
+            if (i == array_dados.length){
+                return 0
+            }
+            const selects = tr.querySelectorAll('select');
+            selects[0].value = 'Sala';
+            selects[1].value = 'Janela de Correr';
+         
+            
+            const inputs = tr.querySelectorAll('input');
+            const [width, height] = array_dados[i][4].split(' x ').map(Number);
+            inputs[0].value = array_dados[i][2];
+            inputs[1].value = parseInt(array_dados[i][3].match(/\d+(?=\s*MM)/i)?.[0] || 0);
+            inputs[2].value = width;
+            inputs[3].value = height;
+            
+            i++
+});
+    } else {
+        extractedText = 'Could not find the specified section.';
+    }
+    
+});
+
+                }).catch(function(error) {
+                    console.error("Error reading PDF:", error);
+                });
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+</script>
+        <!-- Produtos -->
+        <div class="form-section" id="produtos">
+            <h2 class="section-title">Produtos</h2>
+            <div class="table-responsive">
+                <table class="table table-bordered" id="productTable">
+                    <thead>
+                        <tr>
+                            <th width="5%">#</th>
+                            <th width="15%">Ambiente</th>
+                            <th width="20%">Tipo de Produto</th>
+                            <th width="10%">Quantidade</th>
+                            <th width="10%">Unidade</th>
+                            <th width="10%">Comprimento (cm)</th>
+                            <th width="10%">Largura (cm)</th>
+                            <th width="10%">Altura (cm)</th>
+                            <th width="10%">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Linhas iniciais serão adicionadas pelo JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between mt-3">
+                <button type="button" class="btn btn-primary" id="addRowBtn">
+                    <i class="fas fa-plus me-2"></i>Adicionar Linha
+                </button>
+                <button type="button" class="btn btn-success" id="generateReportBtn">
+                    <i class="fas fa-file-alt me-2"></i>Gerar Relatório
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal de Relatório -->
+        <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Relatório de Direitos e Deveres</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="reportContent">
+                            <h3 class="mb-4">Resumo dos Produtos</h3>
+                            <div class="table-responsive mb-4">
+                                <table class="table table-bordered table-striped" id="summaryTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Tipo de Produto</th>
+                                            <th>Quantidade Total</th>
+                                            <th>Ambientes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Será preenchido via JavaScript -->
+                                    </tbody>
+                                </table>
+                            <div class="alert alert-secondary mt-4">
+                            <p class="text-center mb-0">* Recomendação técnica. Análise mediante visita técnica paga da SANGLASS.</p>
+                        </div>
+
+                            <h3 class="mb-3">Direitos do Consumidor</h3>
+                            <div class="mb-4" id="direitosConsumidor">
+                                <!-- Será preenchido via JavaScript -->
+                            </div>
+
+                            <h3 class="mb-3">Deveres do Fornecedor</h3>
+                            <div class="mb-4" id="deveresFornecedor">
+                                <!-- Será preenchido via JavaScript -->
+                            </div>
+
+                            <h3 class="mb-3">Normas Técnicas Aplicáveis</h3>
+                            <div class="mb-4" id="normasTecnicas">
+                                <!-- Será preenchido via JavaScript -->
+                            </div>
+
+                            <h3 class="mb-3">Recomendações Importantes</h3>
+                            <div class="mb-4" id="recomendacoes">
+                                <!-- Será preenchido via JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-primary" id="downloadPdfBtn">
+                            <i class="fas fa-file-pdf me-2"></i>Baixar PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p>SAN GLASS - Sistemas de Vidro e Esquadrias</p>
+                    <p>Central de Atendimento: +55 11 97651-1780</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p>E-mail: contato@sanglass.com.br</p>
+                    <p>www.sanglass.com.br</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Inicialização quando o DOM estiver carregado
+        document.addEventListener('DOMContentLoaded', function() {
+            // Definir data atual automaticamente
+            const today = new Date();
+            document.getElementById('currentDate').value = today.toISOString().split('T')[0];
+
+            // Inicializar tabela com 6 linhas
+            const productTable = document.getElementById('productTable').getElementsByTagName('tbody')[0];
+            for (let i = 0; i < 6; i++) {
+                addNewRow();
+            }
+
+            // Adicionar evento ao botão de adicionar linha
+            document.getElementById('addRowBtn').addEventListener('click', function() {
+                addNewRow();
+            });
+
+            // Adicionar evento ao botão de gerar relatório
+            document.getElementById('generateReportBtn').addEventListener('click', function() {
+                if (validateForm()) {
+                    generateReport();
+                    
+                    // Exibir modal
+                    const reportModal = new bootstrap.Modal(document.getElementById('reportModal'));
+                    reportModal.show();
+                }
+            });
+
+            // Adicionar evento ao botão de download de PDF
+            document.getElementById('downloadPdfBtn').addEventListener('click', function() {
+                generatePDF();
+            });
+
+            // Função para adicionar nova linha na tabela
+            function addNewRow() {
+                const rowCount = productTable.rows.length;
+                const row = productTable.insertRow();
+                
+                // Célula para o número da linha
+                const cellNum = row.insertCell(0);
+                cellNum.textContent = rowCount + 1;
+                
+                // Célula para o ambiente
+                const cellAmbiente = row.insertCell(1);
+                const ambienteSelect = document.createElement('select');
+                ambienteSelect.className = 'form-select ambiente-select';
+                
+                const ambientes = [
+                    'Selecione...', 'Sala', 'Quarto', 'Cozinha', 'Banheiro', 
+                    'Lavanderia', 'Varanda', 'Escritório', 'Área Gourmet', 'Outro'
+                ];
+                
+                ambientes.forEach(ambiente => {
+                    const option = document.createElement('option');
+                    option.value = ambiente;
+                    option.textContent = ambiente;
+                    ambienteSelect.appendChild(option);
+                });
+                
+                cellAmbiente.appendChild(ambienteSelect);
+                
+                // Célula para o tipo de produto
+                const cellTipo = row.insertCell(2);
+                const tipoSelect = document.createElement('select');
+                tipoSelect.className = 'form-select tipo-select';
+                
+                const produtos = [
+                    'Selecione...', 
+                    'Janela de Correr', 
+                    'Janela Maxim-ar', 
+                    'Porta de Giro', 
+                    'Porta de Correr', 
+                    'Sistema Retrátil', 
+                    'Box de Vidro', 
+                    'Guarda-corpo', 
+                    'Esquadria de Alumínio',
+                    'Vidro Temperado',
+                    'Vidro Laminado',
+                    'Vidro Comum',
+                    'Painel Fixo',
+                    'Persiana',
+                    'Outro'
+                ];
+                
+                produtos.forEach(produto => {
+                    const option = document.createElement('option');
+                    option.value = produto;
+                    option.textContent = produto;
+                    tipoSelect.appendChild(option);
+                });
+                
+                cellTipo.appendChild(tipoSelect);
+                
+                // Célula para quantidade
+                const cellQtd = row.insertCell(3);
+                const qtdInput = document.createElement('input');
+                qtdInput.type = 'number';
+                qtdInput.className = 'form-control qtd-input';
+                qtdInput.min = '1';
+                qtdInput.value = '1';
+                cellQtd.appendChild(qtdInput);
+                
+                // Célula para unidade
+                const cellUnidade = row.insertCell(4);
+                const unidadeSelect = document.createElement('select');
+                unidadeSelect.className = 'form-select unidade-select';
+                
+                const unidades = [
+                    'Peça', 'Conjunto', 'Metro', 'Metro²', 'Kit'
+                ];
+                
+                unidades.forEach(unidade => {
+                    const option = document.createElement('option');
+                    option.value = unidade;
+                    option.textContent = unidade;
+                    unidadeSelect.appendChild(option);
+                });
+                
+                cellUnidade.appendChild(unidadeSelect);
+                
+                // Célula para comprimento
+                const cellComprimento = row.insertCell(5);
+                const comprimentoInput = document.createElement('input');
+                comprimentoInput.type = 'number';
+                comprimentoInput.className = 'form-control comprimento-input';
+                comprimentoInput.min = '0';
+                comprimentoInput.step = '0.1';
+                cellComprimento.appendChild(comprimentoInput);
+                
+                // Célula para largura
+                const cellLargura = row.insertCell(6);
+                const larguraInput = document.createElement('input');
+                larguraInput.type = 'number';
+                larguraInput.className = 'form-control largura-input';
+                larguraInput.min = '0';
+                larguraInput.step = '0.1';
+                cellLargura.appendChild(larguraInput);
+                
+                // Célula para altura
+                const cellAltura = row.insertCell(7);
+                const alturaInput = document.createElement('input');
+                alturaInput.type = 'number';
+                alturaInput.className = 'form-control altura-input';
+                alturaInput.min = '0';
+                alturaInput.step = '0.1';
+                cellAltura.appendChild(alturaInput);
+                
+                // Célula para ações
+                const cellAcoes = row.insertCell(8);
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-danger btn-sm';
+                removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                removeBtn.addEventListener('click', function() {
+                    if (productTable.rows.length > 1) {
+                        productTable.deleteRow(row.rowIndex - 1);
+                        updateRowNumbers();
+                    } else {
+                        alert('A tabela deve ter pelo menos uma linha');
+                    }
+                });
+                cellAcoes.appendChild(removeBtn);
+            }
+
+            // Função para atualizar os números das linhas
+            function updateRowNumbers() {
+                const rows = productTable.rows;
+                for (let i = 0; i < rows.length; i++) {
+                    rows[i].cells[0].textContent = i + 1;
+                }
+            }
+
+            // Função para validar o formulário antes de gerar o relatório
+            function validateForm() {
+                const rows = productTable.rows;
+                let valid = true;
+                let emptyFields = [];
+                
+                // Verificar os campos do cabeçalho
+                const wvCode = document.getElementById('wvCode').value.trim();
+                const clientName = document.getElementById('clientName').value.trim();
+                const clientAddress = document.getElementById('clientAddress').value.trim();
+                
+                if (!wvCode) emptyFields.push('Código WV');
+                if (!clientName) emptyFields.push('Nome do Cliente');
+                if (!clientAddress) emptyFields.push('Endereço');
+                
+                // Verificar as linhas da tabela
+                for (let i = 0; i < rows.length; i++) {
+                    const ambiente = rows[i].querySelector('.ambiente-select').value;
+                    const tipo = rows[i].querySelector('.tipo-select').value;
+                    const comprimento = rows[i].querySelector('.comprimento-input').value;
+                    const largura = rows[i].querySelector('.largura-input').value;
+                    const altura = rows[i].querySelector('.altura-input').value;
+                    
+                    if (ambiente === 'Selecione...' || tipo === 'Selecione...' || !comprimento || !largura || !altura) {
+                        valid = false;
+                        break;
+                    }
+                }
+                
+                if (emptyFields.length > 0) {
+                    alert('Por favor, preencha os seguintes campos: ' + emptyFields.join(', '));
+                    return false;
+                }
+                
+                if (!valid) {
+                    alert('Por favor, preencha todos os campos da tabela de produtos.');
+                    return false;
+                }
+                
+                return true;
+            }
+
+            // Função para gerar o relatório
+            function generateReport() {
+                // Coletar dados
+                const rows = productTable.rows;
+                const produtosPorTipo = {};
+                const ambientesPorTipo = {};
+                
+                for (let i = 0; i < rows.length; i++) {
+                    const tipo = rows[i].querySelector('.tipo-select').value;
+                    const qtd = parseInt(rows[i].querySelector('.qtd-input').value);
+                    const ambiente = rows[i].querySelector('.ambiente-select').value;
+                    
+                    if (tipo !== 'Selecione...') {
+                        // Contabilizar quantidade por tipo
+                        if (!produtosPorTipo[tipo]) {
+                            produtosPorTipo[tipo] = 0;
+                            ambientesPorTipo[tipo] = new Set();
+                        }
+                        produtosPorTipo[tipo] += qtd;
+                        ambientesPorTipo[tipo].add(ambiente);
+                    }
+                }
+                
+                // Preencher tabela de resumo
+                const summaryTable = document.getElementById('summaryTable').getElementsByTagName('tbody')[0];
+                summaryTable.innerHTML = '';
+                
+                for (const tipo in produtosPorTipo) {
+                    const row = summaryTable.insertRow();
+                    const cellTipo = row.insertCell(0);
+                    const cellQtd = row.insertCell(1);
+                    const cellAmbientes = row.insertCell(2);
+                    
+                    cellTipo.textContent = tipo;
+                    cellQtd.textContent = produtosPorTipo[tipo];
+                    cellAmbientes.textContent = Array.from(ambientesPorTipo[tipo]).join(', ');
+                }
+                
+                // Verificar quais tipos de produtos estão presentes
+                const temEsquadrias = 'Janela de Correr' in produtosPorTipo || 
+                                      'Janela Maxim-ar' in produtosPorTipo || 
+                                      'Porta de Giro' in produtosPorTipo || 
+                                      'Porta de Correr' in produtosPorTipo ||
+                                      'Esquadria de Alumínio' in produtosPorTipo;
+                
+                const temVidros = 'Vidro Temperado' in produtosPorTipo || 
+                                 'Vidro Laminado' in produtosPorTipo || 
+                                 'Vidro Comum' in produtosPorTipo;
+                
+                const temSistemasEspeciais = 'Sistema Retrátil' in produtosPorTipo || 
+                                           'Box de Vidro' in produtosPorTipo || 
+                                           'Guarda-corpo' in produtosPorTipo;
+                
+                // Preencher direitos do consumidor
+                const direitosConsumidor = document.getElementById('direitosConsumidor');
+                direitosConsumidor.innerHTML = `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Com base no Código de Defesa do Consumidor (Lei nº 8.078/1990)</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">Direito à informação adequada e clara sobre os produtos e serviços (Art. 6º, III)</li>
+                                <li class="list-group-item">Direito à proteção contra produtos e serviços que possam ser nocivos à saúde (Art. 6º, I)</li>
+                                <li class="list-group-item">Direito à garantia legal de adequação do produto/serviço às normas técnicas (Art. 39, VIII)</li>
+                                <li class="list-group-item">Direito de receber manual de instruções, termo de garantia e assistência técnica (Art. 50)</li>
+                                <li class="list-group-item">Direito de reclamar por vícios aparentes em até 90 dias para produtos duráveis (Art. 26, II)</li>
+                                <li class="list-group-item">Direito à indenização por danos materiais causados por defeitos no produto/serviço (Art. 14)</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                
+                // Preencher deveres do fornecedor
+                const deveresFornecedor = document.getElementById('deveresFornecedor');
+                deveresFornecedor.innerHTML = `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Obrigações do Fornecedor</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">Fornecer produtos e serviços que não apresentem riscos à saúde ou segurança dos consumidores (Art. 8º)</li>
+                                <li class="list-group-item">Fornecer informações claras e adequadas sobre os produtos, incluindo riscos, características, composição e preço (Art. 31)</li>
+                                <li class="list-group-item">Garantir a qualidade dos produtos e serviços, atendendo às normas técnicas brasileiras (Art. 39, VIII)</li>
+                                <li class="list-group-item">Oferecer garantia legal independentemente de termo expresso (Art. 24)</li>
+                                <li class="list-group-item">Informar de maneira ostensiva sobre possíveis riscos (Art. 9º)</li>
+                                <li class="list-group-item">Fornecer manuais de instalação e uso em língua portuguesa (Art. 31)</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                
+                // Preencher normas técnicas aplicáveis
+                const normasTecnicas = document.getElementById('normasTecnicas');
+                let normasHTML = '<div class="card mb-3"><div class="card-body"><h5 class="card-title">Normas Aplicáveis ao Projeto</h5><ul class="list-group list-group-flush">';
+                
+                // Normas gerais (sempre aplicáveis)
+                normasHTML += `
+                    <li class="list-group-item"><strong>NBR 15575</strong> - Edificações Habitacionais - Desempenho</li>
+                    <li class="list-group-item"><strong>NBR 5674:2012</strong> - Manutenção de edificações - Requisitos para o sistema de gestão de manutenção</li>
+                `;
+                
+                // Normas específicas baseadas nos tipos de produtos
+                if (temEsquadrias) {
+                    normasHTML += `
+                        <li class="list-group-item"><strong>NBR 10821</strong> - Esquadrias para edificações</li>
+                        <li class="list-group-item"><strong>NBR 10821-2:2017</strong> - Esquadrias para edificações - Parte 2: Requisitos e classificação</li>
+                        <li class="list-group-item"><strong>NBR 10821-3:2017</strong> - Esquadrias para edificações - Parte 3: Métodos de ensaio</li>
+                        <li class="list-group-item"><strong>NBR 16035:2012</strong> - Chapas de aço revestidas organicamente - Tolerâncias dimensionais</li>
+                    `;
+                }
+                
+                if (temVidros) {
+                    normasHTML += `
+                        <li class="list-group-item"><strong>NBR 7199:2016</strong> - Vidros na construção civil - Projeto, execução e aplicações</li>
+                        <li class="list-group-item"><strong>NBR 16015</strong> - Vidros - Vidro laminado</li>
+                        <li class="list-group-item"><strong>NBR 14698</strong> - Vidro temperado</li>
+                    `;
+                }
+                
+                if (temSistemasEspeciais) {
+                    normasHTML += `
+                        <li class="list-group-item"><strong>NBR 14718</strong> - Guarda-corpos para edificação</li>
+                        <li class="list-group-item"><strong>NBR 16259</strong> - Sistemas de envidraçamento de sacadas</li>
+                    `;
+                }
+                
+                // Normas de instalação e manutenção
+                normasHTML += `
+                    <li class="list-group-item"><strong>NBR 14037:2014</strong> - Diretrizes para elaboração de manuais de uso, operação e manutenção</li>
+                    <li class="list-group-item"><strong>NBR 15575-4:2021</strong> - Edificações habitacionais - Desempenho - Parte 4: Requisitos para os sistemas de vedações verticais internas e externas</li>
+                `;
+                
+                normasHTML += '</ul></div></div>';
+                normasTecnicas.innerHTML = normasHTML;
+                
+                // Preencher recomendações
+                const recomendacoes = document.getElementById('recomendacoes');
+                recomendacoes.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Recomendações para o Cliente</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">Mantenha o registro de todas as manutenções realizadas, conforme a periodicidade recomendada</li>
+                                <li class="list-group-item">Utilize apenas produtos de limpeza neutros, não abrasivos para a manutenção dos produtos</li>
+                                <li class="list-group-item">Agende as manutenções anuais com a empresa com pelo menos 30 dias de antecedência</li>
+                                <li class="list-group-item">Em caso de qualquer não conformidade, entre em contato imediatamente com a empresa</li>
+                                <li class="list-group-item">Guarde o manual do proprietário e o certificado de garantia em local seguro e acessível</li>
+                                <li class="list-group-item">Não realize modificações nos produtos sem consultar a empresa fornecedora</li>
+                                <li class="list-group-item">Evite impactos nas superfícies de vidro e nos perfis de alumínio</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Função para gerar o PDF
+            function generatePDF() {
+                // Mostrar overlay de carregamento
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                
+                // Usar setTimeout para dar tempo ao browser para renderizar o loading
+                setTimeout(function() {
+                    try {
+                        const { jsPDF } = window.jspdf;
+                        const doc = new jsPDF('p', 'mm', 'a4');
+                        
+                        // Obter dados do cabeçalho
+                        const wvCode = document.getElementById('wvCode').value;
+                        const clientName = document.getElementById('clientName').value;
+                        const clientAddress = document.getElementById('clientAddress').value;
+                        const currentDate = document.getElementById('currentDate').value;
+                        
+                        // Configurar cabeçalho do PDF
+                        doc.setFontSize(16);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('SAN GLASS - RELATÓRIO TÉCNICO', 105, 15, { align: 'center' });
+                        
+                        doc.setFontSize(11);
+                        doc.setTextColor(0);
+                        doc.text(`Código: ${wvCode}`, 15, 25);
+                        doc.text(`Cliente: ${clientName}`, 15, 30);
+                        doc.text(`Endereço: ${clientAddress}`, 15, 35);
+                        doc.text(`Data: ${formatDate(currentDate)}`, 15, 40);
+                        
+                        // Linha separadora
+                        doc.setDrawColor(0, 102, 204);
+                        doc.setLineWidth(0.5);
+                        doc.line(15, 45, 195, 45);
+                        
+                        // Título da tabela de produtos
+                        doc.setFontSize(14);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('RELAÇÃO DE PRODUTOS', 105, 55, { align: 'center' });
+                        
+                        // Obter dados da tabela de produtos
+                        const tableData = [];
+                        const tableHeader = [
+                            ['#', 'Ambiente', 'Tipo de Produto', 'Qtd', 'Unid.', 'Comp. (cm)', 'Larg. (cm)', 'Alt. (cm)']
+                        ];
+                        
+                        const rows = productTable.rows;
+                        for (let i = 0; i < rows.length; i++) {
+                            const ambiente = rows[i].querySelector('.ambiente-select').value;
+                            const tipo = rows[i].querySelector('.tipo-select').value;
+                            const qtd = rows[i].querySelector('.qtd-input').value;
+                            const unidade = rows[i].querySelector('.unidade-select').value;
+                            const comprimento = rows[i].querySelector('.comprimento-input').value;
+                            const largura = rows[i].querySelector('.largura-input').value;
+                            const altura = rows[i].querySelector('.altura-input').value;
+                            
+                            tableData.push([
+                                (i + 1).toString(),
+                                ambiente,
+                                tipo,
+                                qtd,
+                                unidade,
+                                comprimento,
+                                largura,
+                                altura
+                            ]);
+                        }
+                        
+                        // Gerar tabela de produtos no PDF
+                        doc.autoTable({
+                            head: tableHeader,
+                            body: tableData,
+                            startY: 60,
+                            styles: { fontSize: 9, cellPadding: 3 },
+                            headStyles: { fillColor: [0, 102, 204], textColor: [255, 255, 255] },
+                            margin: { top: 60 }
+                        });
+                        
+                        // Adicionar nova página para as informações legais
+                        doc.addPage();
+                        
+                        // Título da seção de direitos e deveres
+                        doc.setFontSize(14);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('DIREITOS E DEVERES', 105, 15, { align: 'center' });
+                        
+                        // Subseção de direitos do consumidor
+                        doc.setFontSize(12);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('Direitos do Consumidor (Lei nº 8.078/1990)', 15, 25);
+                        
+                        doc.setFontSize(10);
+                        doc.setTextColor(0);
+                        let y = 30;
+                        
+                        const direitos = [
+                            'Direito à informação adequada e clara sobre os produtos e serviços (Art. 6º, III)',
+                            'Direito à proteção contra produtos e serviços que possam ser nocivos à saúde (Art. 6º, I)',
+                            'Direito à garantia legal de adequação do produto/serviço às normas técnicas (Art. 39, VIII)',
+                            'Direito de receber manual de instruções, termo de garantia e assistência técnica (Art. 50)',
+                            'Direito de reclamar por vícios aparentes em até 90 dias para produtos duráveis (Art. 26, II)',
+                            'Direito à indenização por danos materiais causados por defeitos no produto/serviço (Art. 14)'
+                        ];
+                        
+                        direitos.forEach(direito => {
+                            doc.text('• ' + direito, 15, y);
+                            y += 7;
+                        });
+                        
+                        // Subseção de deveres do fornecedor
+                        doc.setFontSize(12);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('Deveres do Fornecedor', 15, y + 5);
+                        
+                        doc.setFontSize(10);
+                        doc.setTextColor(0);
+                        y += 10;
+                        
+                        const deveres = [
+                            'Fornecer produtos e serviços seguros, sem riscos à saúde do consumidor (Art. 8º)',
+                            'Fornecer informações claras sobre produtos e serviços (Art. 31)',
+                            'Garantir a qualidade, atendendo às normas técnicas brasileiras (Art. 39, VIII)',
+                            'Oferecer garantia legal independentemente de termo expresso (Art. 24)',
+                            'Informar de maneira ostensiva sobre possíveis riscos (Art. 9º)',
+                            'Fornecer manuais de instalação e uso em língua portuguesa (Art. 31)'
+                        ];
+                        
+                        deveres.forEach(dever => {
+                            doc.text('• ' + dever, 15, y);
+                            y += 7;
+                        });
+                        
+                        // Subseção de normas técnicas aplicáveis
+                        doc.setFontSize(12);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('Normas Técnicas Aplicáveis', 15, y + 5);
+                        
+                        doc.setFontSize(10);
+                        doc.setTextColor(0);
+                        y += 10;
+                        
+                        // Obter tipos de produtos na tabela
+                        const tiposProdutos = new Set();
+                        for (let i = 0; i < rows.length; i++) {
+                            const tipo = rows[i].querySelector('.tipo-select').value;
+                            if (tipo !== 'Selecione...') {
+                                tiposProdutos.add(tipo);
+                            }
+                        }
+                        
+                        // Verificar quais tipos de produtos estão presentes
+                        const temEsquadrias = Array.from(tiposProdutos).some(tipo => 
+                            ['Janela de Correr', 'Janela Maxim-ar', 'Porta de Giro', 
+                             'Porta de Correr', 'Esquadria de Alumínio'].includes(tipo)
+                        );
+                        
+                        const temVidros = Array.from(tiposProdutos).some(tipo => 
+                            ['Vidro Temperado', 'Vidro Laminado', 'Vidro Comum'].includes(tipo)
+                        );
+                        
+                        const temSistemasEspeciais = Array.from(tiposProdutos).some(tipo => 
+                            ['Sistema Retrátil', 'Box de Vidro', 'Guarda-corpo'].includes(tipo)
+                        );
+                        
+                        // Normas gerais (sempre aplicáveis)
+                        const normas = [
+                            'NBR 15575 - Edificações Habitacionais - Desempenho',
+                            'NBR 5674:2012 - Manutenção de edificações - Requisitos para o sistema de gestão de manutenção'
+                        ];
+                        
+                        // Adicionar normas específicas conforme tipo de produto
+                        if (temEsquadrias) {
+                            normas.push('NBR 10821 - Esquadrias para edificações');
+                            normas.push('NBR 10821-2:2017 - Esquadrias para edificações - Parte 2: Requisitos e classificação');
+                            normas.push('NBR 16035:2012 - Chapas de aço revestidas organicamente - Tolerâncias dimensionais');
+                        }
+                        
+                        if (temVidros) {
+                            normas.push('NBR 7199:2016 - Vidros na construção civil - Projeto, execução e aplicações');
+                            normas.push('NBR 16015 - Vidros - Vidro laminado');
+                            normas.push('NBR 14698 - Vidro temperado');
+                        }
+                        
+                        if (temSistemasEspeciais) {
+                            normas.push('NBR 14718 - Guarda-corpos para edificação');
+                            normas.push('NBR 16259 - Sistemas de envidraçamento de sacadas');
+                        }
+                        
+                        // Adicionar normas de instalação e manutenção
+                        normas.push('NBR 14037:2014 - Diretrizes para elaboração de manuais de uso, operação e manutenção');
+                        normas.push('NBR 15575-4:2021 - Edificações habitacionais - Desempenho - Parte 4: Requisitos para os sistemas de vedações verticais internas e externas');
+                        
+                        // Verificar se precisamos adicionar mais páginas para as normas
+                        if (y + (normas.length * 7) > 280) {
+                            doc.addPage();
+                            y = 15;
+                            
+                            doc.setFontSize(12);
+                            doc.setTextColor(0, 102, 204);
+                            doc.text('Normas Técnicas Aplicáveis (continuação)', 15, y);
+                            y += 10;
+                            
+                            doc.setFontSize(10);
+                            doc.setTextColor(0);
+                        }
+                        
+                        normas.forEach(norma => {
+                            doc.text('• ' + norma, 15, y);
+                            y += 7;
+                            
+                            // Se chegar ao final da página, adicionar nova página
+                            if (y > 280) {
+                                doc.addPage();
+                                y = 15;
+                                
+                                doc.setFontSize(10);
+                                doc.setTextColor(0);
+                            }
+                        });
+                        
+                        // Adicionar recomendações importantes
+                        doc.setFontSize(12);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('Recomendações Importantes', 15, y + 5);
+                        
+                        doc.setFontSize(10);
+                        doc.setTextColor(0);
+                        y += 10;
+                        
+                        const recomendacoes = [
+                            'Mantenha o registro de todas as manutenções realizadas, conforme a periodicidade recomendada',
+                            'Utilize apenas produtos de limpeza neutros, não abrasivos para a manutenção dos produtos',
+                            'Agende as manutenções anuais com a empresa com pelo menos 30 dias de antecedência',
+                            'Em caso de qualquer não conformidade, entre em contato imediatamente com a empresa',
+                            'Guarde o manual do proprietário e o certificado de garantia em local seguro e acessível',
+                            'Não realize modificações nos produtos sem consultar a empresa fornecedora',
+                            'Evite impactos nas superfícies de vidro e nos perfis de alumínio'
+                        ];
+                        
+                        recomendacoes.forEach(recomendacao => {
+                            doc.text('• ' + recomendacao, 15, y);
+                            y += 7;
+                            
+                            // Se chegar ao final da página, adicionar nova página
+                            if (y > 280) {
+                                doc.addPage();
+                                y = 15;
+                                
+                                doc.setFontSize(10);
+                                doc.setTextColor(0);
+                            }
+                        });
+                        
+                        // Adicionar tabela de periodicidade no PDF
+                        if (y > 240) { // Verificar se precisa de uma nova página
+                            doc.addPage();
+                            y = 15;
+                        }
+                        
+                        // Título da tabela de periodicidade
+                        doc.setFontSize(12);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('Tabela de Periodicidade de Manutenção', 15, y + 5);
+                        doc.text(`Guia para Acompanhamento do Cliente - ${today.getFullYear()}`, 15, y + 12);
+                        
+                        // Meses do ano para o cabeçalho da tabela
+                        const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                        
+                        // Itens de manutenção
+                        const itensManutenção = [
+                            'Vedação de Silicone',
+                            'Dispositivos de Abertura',
+                            'Perfis de Alumínio',
+                            'Chumbadores e Fixadores',
+                            'Sistema Retrátil',
+                            'Vidros',
+                            'Boxes de Vidro'
+                        ];
+                        
+                        // Mapear quais meses têm manutenção para cada item
+                        const manutencaoPorItem = {
+                            'Vedação de Silicone': [0, 6], // Jan, Jul
+                            'Dispositivos de Abertura': [0, 3, 6, 9], // Jan, Abr, Jul, Out
+                            'Perfis de Alumínio': [0, 3, 6, 9], // Jan, Abr, Jul, Out
+                            'Chumbadores e Fixadores': [0], // Jan
+                            'Sistema Retrátil': [0], // Jan
+                            'Vidros': [0, 2, 6, 11], // Jan, Mar, Jul, Dez
+                            'Boxes de Vidro': [0, 2, 6, 11] // Jan, Mar, Jul, Dez
+                        };
+                        
+                        // Responsabilidade por item (true = SANGLASS, false = CLIENTE)
+                        const responsabilidadeSanglass = {
+                            'Vedação de Silicone': false,
+                            'Dispositivos de Abertura': false,
+                            'Perfis de Alumínio': false,
+                            'Chumbadores e Fixadores': true,
+                            'Sistema Retrátil': true,
+                            'Vidros': false,
+                            'Boxes de Vidro': false
+                        };
+                        
+                        // Configurar tabela de periodicidade
+                        const headPeriodicidade = [['Item'].concat(meses)];
+                        const bodyPeriodicidade = [];
+                        
+                        // Preencher dados da tabela
+                        itensManutenção.forEach(item => {
+                            const row = [item];
+                            for (let i = 0; i < 12; i++) {
+                                if (manutencaoPorItem[item].includes(i)) {
+                                    row.push('✓');
+                                } else {
+                                    row.push('');
+                                }
+                            }
+                            bodyPeriodicidade.push(row);
+                        });
+                        
+                        // Gerar tabela de periodicidade no PDF
+                        doc.autoTable({
+                            head: headPeriodicidade,
+                            body: bodyPeriodicidade,
+                            startY: y + 15,
+                            styles: { fontSize: 8, cellPadding: 2 },
+                            headStyles: { fillColor: [0, 102, 204], textColor: [255, 255, 255] },
+                            columnStyles: {
+                                0: { cellWidth: 40 }
+                            },
+                            // Colorir células de acordo com responsabilidade (CLIENTE ou SANGLASS)
+                            didDrawCell: (data) => {
+                                if (data.section === 'body' && data.column.index > 0 && data.cell.text.length > 0) {
+                                    // Obtém o item atual (primeira coluna)
+                                    const item = data.table.body[data.row.index][0].text;
+                                    // Define a cor com base na responsabilidade
+                                    if (responsabilidadeSanglass[item]) {
+                                        // Cor para SANGLASS (azul claro)
+                                        doc.setFillColor(200, 230, 255);
+                                    } else {
+                                        // Cor para CLIENTE (amarelo claro)
+                                        doc.setFillColor(255, 245, 200);
+                                    }
+                                    // Desenha um retângulo preenchido atrás do texto
+                                    doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                                    // Restaura a cor de preenchimento
+                                    doc.setFillColor(255, 255, 255);
+                                }
+                            }
+                        });
+                        
+                        // Atualizar a posição Y para depois da tabela
+                        y = doc.autoTable.previous.finalY + 10;
+                        
+                        // Adicionar legenda
+                        doc.setFontSize(8);
+                        doc.setTextColor(0);
+                        doc.text('Legenda:', 15, y);
+                        doc.text('□ Manutenção sob responsabilidade do CLIENTE', 15, y + 5);
+                        doc.text('□ Manutenção sob responsabilidade da SANGLASS*', 15, y + 10);
+                        
+                        // Colorir os quadrados da legenda
+                        doc.setFillColor(255, 245, 200); // Amarelo claro para CLIENTE
+                        doc.rect(15, y + 2, 3, 3, 'F');
+                        doc.setFillColor(200, 230, 255); // Azul claro para SANGLASS
+                        doc.rect(15, y + 7, 3, 3, 'F');
+                        
+                        // Atualizar posição Y
+                        y += 15;
+                        
+                        // Adicionar procedimentos para acionamento da garantia
+                        if (y > 240) { // Verificar se precisa de uma nova página
+                            doc.addPage();
+                            y = 15;
+                        }
+                        
+                        // Título dos procedimentos
+                        doc.setFontSize(12);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text('Procedimentos para Acionamento da Garantia', 15, y + 5);
+                        
+                        doc.setFontSize(9);
+                        doc.setTextColor(0);
+                        y += 15;
+                        
+                        // Procedimentos para acionamento da garantia
+                        const procedimentos = [
+                            { titulo: 'Comunicar imediatamente', texto: 'qualquer não conformidade à SANGLASS pelos canais oficiais de atendimento.' },
+                            { titulo: 'Apresentar documentação', texto: 'comprobatória de manutenções realizadas.' },
+                            { titulo: 'Permitir o acesso', texto: 'dos técnicos da SANGLASS para vistoria e avaliação.' },
+                            { titulo: 'Aguardar o laudo técnico', texto: 'que determinará se o caso está coberto pela garantia.' }
+                        ];
+                        
+                        procedimentos.forEach((proc, index) => {
+                            doc.setFontSize(9);
+                            doc.setFont(undefined, 'bold');
+                            doc.text(`${index + 1}. ${proc.titulo}`, 15, y);
+                            doc.setFont(undefined, 'normal');
+                            doc.text(proc.texto, 15 + doc.getTextWidth(`${index + 1}. ${proc.titulo} `), y);
+                            y += 7;
+                        });
+                        
+                        // Texto adicional
+                        y += 3;
+                        doc.setFontSize(9);
+                        doc.text('A SANGLASS se reserva o direito de analisar cada solicitação individualmente, verificando se as', 15, y);
+                        doc.text('condições de uso e manutenção foram respeitadas conforme especificações técnicas.', 15, y + 5);
+                        
+                        // Rodapé em todas as páginas
+                        const pageCount = doc.getNumberOfPages();
+                        for (let i = 1; i <= pageCount; i++) {
+                            doc.setPage(i);
+                            
+                            // Linha separadora
+                            doc.setDrawColor(0, 102, 204);
+                            doc.setLineWidth(0.5);
+                            doc.line(15, 285, 195, 285);
+                            
+                            // Texto do rodapé
+                            doc.setFontSize(8);
+                            doc.setTextColor(0);
+                            doc.text('SAN GLASS - Sistemas de Vidro e Esquadrias', 15, 290);
+                            doc.text('* Recomendação técnica. Análise mediante visita técnica paga da SANGLASS.', 105, 290, { align: 'center' });
+                            doc.text(`Página ${i} de ${pageCount}`, 195, 290, { align: 'right' });
+                        }
+                        
+                        // Salvar o PDF
+                        const filename = `Relatório_${wvCode.replace(/\s/g, '')}_${formatDateFilename(currentDate)}.pdf`;
+                        doc.save(filename);
+                    } catch (error) {
+                        console.error('Erro ao gerar PDF:', error);
+                        alert('Ocorreu um erro ao gerar o PDF: ' + error.message);
+                    } finally {
+                        // Esconder overlay de carregamento
+                        document.getElementById('loadingOverlay').style.display = 'none';
+                    }
+                }, 500);
+            }
+            
+            // Função auxiliar para formatar a data
+            function formatDate(dateString) {
+                if (!dateString) return '';
+                
+                const date = new Date(dateString);
+                return date.toLocaleDateString('pt-BR');
+            }
+            
+            // Função auxiliar para formatar a data para nome de arquivo
+            function formatDateFilename(dateString) {
+                if (!dateString) return '';
+                
+                const date = new Date(dateString);
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                
+                return `${day}${month}${year}`;
+            }
+        });
+    </script>
+</body>
+</html>
