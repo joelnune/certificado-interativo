@@ -71,7 +71,7 @@
                     'Janela Maxim-ar', 
                     'Porta de Giro', 
                     'Porta de Correr', 
-                    'Sistema Retrátil', 
+                    'Sistema Retratil', 
                     'Box de Vidro', 
                     'Guarda-corpo', 
                     'Esquadria de Alumínio',
@@ -80,6 +80,60 @@
                     'Vidro Comum',
                     'Painel Fixo',
                     'Persiana',
+                    'SANSYSTEM',
+                    'BOX ENGENHARIA',
+                    'BOX FLEX',
+                    'BOX VERSATIK',
+                    'BOX CANTO',
+                    'BOX PIVOTANTE',
+                    'BOX DUE',
+                    'CAIXA DE AR',
+                    'COBERTURA FIXA',
+                    'COBERTURA RETRATIL',
+                    'JANELA GOLD',
+                    'JANELA SUPREMA',
+                    'JANELA ENGENHARIA',
+                    'Janela Basculante',
+                    'Divisória',
+                    'Vidro Fixo',
+                    'Porta Pivotante',
+                    'Porta Engenharia',
+                    'Porta Versatix',
+                    'Porta Articule',
+                    'Porta Gold',
+                    'Porta Suprema',
+                    'GC Bottom',
+                    'GC Torre',
+                    'GC Infinity View',
+                    'GC Grid',
+                    'GC Embutido',
+                    'GC Barra Roscada',
+                    'Muro Panoramico',
+                    'Veneziana',
+                    'Ventilação Permanente',
+                    'ACM',
+                    'Pele de vidro Glazzing',
+                    'Muro Spider Glass',
+                    'GC Encaixilhado',
+                    'Espelho',
+                    'Janela Versatik',
+                    'Janela OsciloBatente',
+                    'Bandeira Fixa',
+                    'Pé Direito Duplo',
+                    'Bandeira Maxim-Ar',
+                    'Pele de Vidro linha Stack',
+                    'Porta Linha 42',
+                    'Porta Stanley',
+                    'Box Giro',
+                    'Janela Linha 42',
+                    'GC Spider',
+                    'GC Encaixilhado',
+                    'GC Universal',
+                    'Pele de vidro GRID',
+                    'Pele de vidro Spider',
+                    'Estrutura Auxiliar',
+                    'Brises',
+                    'Visor de Piscina',
                     'Outro'
                 ];
                 
@@ -262,7 +316,7 @@
                                  'Vidro Laminado' in produtosPorTipo || 
                                  'Vidro Comum' in produtosPorTipo;
                 
-                const temSistemasEspeciais = 'Sistema Retrátil' in produtosPorTipo || 
+                const temSistemasEspeciais = 'Sistema Retratil' in produtosPorTipo || 
                                            'Box de Vidro' in produtosPorTipo || 
                                            'Guarda-corpo' in produtosPorTipo;
                 
@@ -460,7 +514,7 @@
                             ['Dispositivos de Abertura', '✓', '', '', '✓', '', '', '✓', '', '', '✓', '', ''],
                             ['Perfis de Alumínio', '✓', '', '', '✓', '', '', '✓', '', '', '✓', '', ''],
                             ['Chumbadores e Fixadores', '✓', '', '', '', '', '', '', '', '', '', '', ''],
-                            ['Sistema Retrátil', '✓', '', '', '', '', '', '', '', '', '', '', ''],
+                            ['Sistema Retratil', '✓', '', '', '', '', '', '', '', '', '', '', ''],
                             ['Vidros', '✓', '', '✓', '', '', '', '✓', '', '', '', '', '✓'],
                             ['Boxes de Vidro', '✓', '', '✓', '', '', '', '✓', '', '', '', '', '✓']
                         ];
@@ -475,7 +529,7 @@
                             [2, 1, false], [2, 4, false], [2, 7, false], [2, 10, false],
                             // Chumbadores e Fixadores (SANGLASS) - Jan
                             [3, 1, true],
-                            // Sistema Retrátil (SANGLASS) - Jan
+                            // Sistema Retratil (SANGLASS) - Jan
                             [4, 1, true],
                             // Vidros (CLIENTE) - Jan, Mar, Jul, Dez
                             [5, 1, false], [5, 3, false], [5, 7, false], [5, 12, false],
@@ -843,9 +897,102 @@
             <h2 class="section-title">Anexar PDF</h2>
                 <label for="pdf_file" class="form-label">PDF</label>
                 <input type="file" class="form-control" id="pdf_file">
-         
+                <button type="button"  onclick="remover_pdf()" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i>
+                
+                </button>
         </div>
         <script>
+        function remover_pdf() {
+        document.getElementById('pdf_file').value = '';
+        }
+
+        function verificarTexto(str,tipo) {
+       
+        let targetChars = ['sala', 'quarto', 'cozinha','banheiro', 'lavanderia', 'varanda','escritório', 'área Gourmet'];
+        if (tipo=='produto'){
+            targetChars = [
+    'selecione...',
+    'janela de correr',
+    'janela maxim-ar',
+    'porta de giro',
+    'porta de correr',
+    'sistema retratil',
+    'box de vidro',
+    'guarda-corpo',
+    'esquadria de alumínio',
+    'vidro temperado',
+    'vidro laminado',
+    'vidro comum',
+    'painel fixo',
+    'persiana',
+    'sansystem',
+    'box engenharia',
+    'box flex',
+    'box versatik',
+    'box canto',
+    'box pivotante',
+    'box due',
+    'caixa de ar',
+    'cobertura fixa',
+    'cobertura retratil',
+    'janela gold',
+    'janela suprema',
+    'janela engenharia',
+    'janela basculante',
+    'divisória',
+    'vidro fixo',
+    'porta pivotante',
+    'porta engenharia',
+    'porta versatix',
+    'porta articule',
+    'porta gold',
+    'porta suprema',
+    'gc bottom',
+    'gc torre',
+    'gc infinity view',
+    'gc grid',
+    'gc embutido',
+    'gc barra roscada',
+    'muro panoramico',
+    'veneziana',
+    'ventilação permanente',
+    'acm',
+    'pele de vidro glazzing',
+    'muro spider glass',
+    'gc encaixilhado',
+    'espelho',
+    'janela versatik',
+    'janela oscilobatente',
+    'bandeira fixa',
+    'pé direito duplo',
+    'bandeira maxim-ar',
+    'pele de vidro linha stack',
+    'porta linha 42',
+    'porta stanley',
+    'box giro',
+    'janela linha 42',
+    'gc spider',
+    'gc encaixilhado',
+    'gc universal',
+    'pele de vidro grid',
+    'pele de vidro spider',
+    'estrutura auxiliar',
+    'brises',
+    'visor de piscina',
+    'outro'
+]
+        }
+        let palavra_alvo = targetChars.find(char => str.toLowerCase().includes(char)) || null;
+        if (typeof palavra_alvo =='string'){
+            palavra_alvo = String(palavra_alvo)
+            .split(' ')
+            .map(word => word.length > 2 
+                ? word.charAt(0).toUpperCase() + word.slice(1) 
+                : word)
+            .join(' ');
+        }
+        return palavra_alvo
+        }
         document.getElementById('pdf_file').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file || file.type !== "application/pdf") {
@@ -887,7 +1034,7 @@
 
         console.log('texto extraido: ',extractedText)  
 
-        let parts = extractedText.trim().split(/\s{2,}/);
+        let parts = extractedText.trim().split(/(?<![|\\-])\s{2,}/);
         parts_filtrada = []
         result = []
         
@@ -933,8 +1080,12 @@
                 return 0
             }
             const selects = tr.querySelectorAll('select');
-            selects[0].value = 'Sala';
-            selects[1].value = 'Janela de Correr';
+            //if (array_dados[1].includes(''))
+            
+            //selects[0].value = 'Sala'
+            //selects[1].value = 'Box de Vidro'
+            selects[0].value = verificarTexto(str=array_dados[i][1],tipo='ambiente');
+            selects[1].value = verificarTexto(str=array_dados[i][0],tipo='produto');
          
             
             const inputs = tr.querySelectorAll('input');
@@ -1144,7 +1295,7 @@
                     'Janela Maxim-ar', 
                     'Porta de Giro', 
                     'Porta de Correr', 
-                    'Sistema Retrátil', 
+                    'Sistema Retratil', 
                     'Box de Vidro', 
                     'Guarda-corpo', 
                     'Esquadria de Alumínio',
@@ -1335,7 +1486,7 @@
                                  'Vidro Laminado' in produtosPorTipo || 
                                  'Vidro Comum' in produtosPorTipo;
                 
-                const temSistemasEspeciais = 'Sistema Retrátil' in produtosPorTipo || 
+                const temSistemasEspeciais = 'Sistema Retratil' in produtosPorTipo || 
                                            'Box de Vidro' in produtosPorTipo || 
                                            'Guarda-corpo' in produtosPorTipo;
                 
@@ -1599,7 +1750,7 @@
                         );
                         
                         const temSistemasEspeciais = Array.from(tiposProdutos).some(tipo => 
-                            ['Sistema Retrátil', 'Box de Vidro', 'Guarda-corpo'].includes(tipo)
+                            ['Sistema Retratil', 'Box de Vidro', 'Guarda-corpo'].includes(tipo)
                         );
                         
                         // Normas gerais (sempre aplicáveis)
@@ -1712,7 +1863,7 @@
                             'Dispositivos de Abertura',
                             'Perfis de Alumínio',
                             'Chumbadores e Fixadores',
-                            'Sistema Retrátil',
+                            'Sistema Retratil',
                             'Vidros',
                             'Boxes de Vidro'
                         ];
@@ -1723,7 +1874,7 @@
                             'Dispositivos de Abertura': [0, 3, 6, 9], // Jan, Abr, Jul, Out
                             'Perfis de Alumínio': [0, 3, 6, 9], // Jan, Abr, Jul, Out
                             'Chumbadores e Fixadores': [0], // Jan
-                            'Sistema Retrátil': [0], // Jan
+                            'Sistema Retratil': [0], // Jan
                             'Vidros': [0, 2, 6, 11], // Jan, Mar, Jul, Dez
                             'Boxes de Vidro': [0, 2, 6, 11] // Jan, Mar, Jul, Dez
                         };
@@ -1734,7 +1885,7 @@
                             'Dispositivos de Abertura': false,
                             'Perfis de Alumínio': false,
                             'Chumbadores e Fixadores': true,
-                            'Sistema Retrátil': true,
+                            'Sistema Retratil': true,
                             'Vidros': false,
                             'Boxes de Vidro': false
                         };
